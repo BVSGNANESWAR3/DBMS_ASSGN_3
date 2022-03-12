@@ -59,8 +59,16 @@ cur.execute("""
 cur.execute("""
     create temp table base_table as select R1.id as X, R2.id as Y, R2.referenceid as Z from referenceslist as R1 inner join referenceslist as R2 on R1.referenceid = R2.id;
     
-    create temp table new_table as select X, Y, Z from base_table inner join referenceslist as R3 on R3.id = Z where  R3.referenceid =X union select X, Y, Z from base_table inner join referenceslist as R4 on R4.id = X where R4.referenceid =Z; 
-    
+    create temp table new_table_0 as select X, Y, Z from base_table inner join referenceslist as R3 on R3.id = Z where  R3.referenceid =X ;
+    update new_table_0 set Z = X, X = Z where X < Y and Y > Z and X > Z;
+    update new_table_0 set Y = Z, Z = Y where X < Y and Y > Z and X < Z;
+    update new_table_0 set X = Z, Z = X where X > Y and Y < Z and X > Z;
+    update new_table_0 set X = Y, Y = X where X > Y and Y < Z and X < Z;
+    update new_table_0 set X = Z, Z = X where X > Y and Y > Z and X > Z;
+
+    create temp table new_table as select distinct X, Y, Z from new_table_0;
+    insert into new_table(X, Y, Z) select X, Y, Z from base_table inner join referenceslist as R4 on R4.id = X where R4.referenceid =Z; 
+
     create temp table author_table as select A1.authorname as author1, A2.authorname as author2, A3.authorname as author3 
     from new_table 
     inner join authors as A1 on X = A1.id 
@@ -68,9 +76,11 @@ cur.execute("""
     inner join authors as A3 on Z = A3.id and A3.authorname != A1.authorname and A3.authorname != A2.authorname;
     
 
-    update author_table set author1 = author2, author2 = author1 where author1 > author2;
-    update author_table set author2 = author3, author3 = author2 where author2 > author3;
-    update author_table set author3 = author1, author1 = author3 where author3 > author1;
+    update author_table set author3 = author1, author1 = author3 where author1 < author2 and author2 > author3 and author1 > author3;
+    update author_table set author2 = author3, author3 = author2 where author1 < author2 and author2 > author3 and author1 < author3;
+    update author_table set author1 = author3, author3 = author1 where author1 > author2 and author2 < author3 and author1 > author3;
+    update author_table set author1 = author2, author2 = author1 where author1 > author2 and author2 < author3 and author1 < author3;
+    update author_table set author1 = author3, author3 = author1 where author1 > author2 and author2 > author3 and author1 > author3;
 """)
 
 my_table_6= pd.read_sql("select author1, author2, author3, count(*) from author_table  group by author1, author2, author3 order by count DESC", conn)
